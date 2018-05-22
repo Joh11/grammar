@@ -12,8 +12,10 @@ import Grammar.Grammar
 -- Generate all the words of a language from a grammar (potentially infinite)
 generateLang :: (Vars v, Eq a) => Grammar v a -> Language a
 generateLang grammar = nub $ catMaybes $ fmap onlyFullWords $ genPartialWords grammar [firstPartialWord grammar]
-  where onlyFullWords word | all isRight word = Just $ rights word
-                           | otherwise = Nothing
+
+onlyFullWords :: PartialWord v a -> Maybe [a]
+onlyFullWords word | all isRight word = Just $ rights word
+                   | otherwise = Nothing
 
 genPartialWords :: Grammar v a -> [PartialWord v a] -> [PartialWord v a]
 genPartialWords g@(Grammar rules) ws = ws' ++ genPartialWords g ws'
