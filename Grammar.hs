@@ -64,7 +64,7 @@ type Rule v a = (v, PartialWord v a)
 -- Else return all the possible combinaisons of rules applied to all the variables
 genOne :: (Eq v) => [Rule v a] -> PartialWord v a -> [PartialWord v a]
 genOne rules word | length (lefts word) == 0 = return word
-                  | otherwise = kindaJoinLeft $ fmap (bimap catMaybes id) $ useAllRules $ fillWithRules word rules
+                  | otherwise = kindaJoinLeft $ fmap (first catMaybes) $ useAllRules $ fillWithRules word rules
 
 useRule :: (Eq v) => v -> Rule v a -> Maybe (KleeneStar (Either v a))
 useRule x (v, m) | x == v = Just m
