@@ -1,44 +1,13 @@
 {-# LANGUAGE TupleSections #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE GADTs #-}
-module Grammar where
+module Grammar.Generate(generateLang) where
 
-import Control.Monad.Reader
+import Data.List
+import Data.Maybe
 import Data.Either
 import Control.Monad
-import Data.Maybe
 import Data.Bifunctor
-import Data.List
 
--- Just to differentiate a list of rule from the Kleene star
-type KleeneStar a = [a]
-
-emptyWord :: KleeneStar a
-emptyWord = []
-
-class Vars v where
-  axiom :: v
-  
-data Grammar :: * -> * -> * where
-  Grammar :: (Eq a, Eq v, Vars v) => {grammarRules :: [(v, KleeneStar (Either v a))]} -> Grammar v a
-
-data (Vars v) => G v a = G [(v, KleeneStar (Either v a))]
-
-type Language a = [KleeneStar a]
-
--- First example from Wikipedia
-data S = S
-  deriving (Show, Eq)
-instance Vars S where
-  axiom = S
-
-data AB = A | B
-  deriving (Show, Eq)
-
-firstGrammar :: Grammar S AB
-firstGrammar = Grammar [ (S, [Right A, Left S, Right B])
-                       , (S, emptyWord)]
-
+import Grammar.Grammar
 
 -- Generate all the words of a language from a grammar (potentially infinite)
 generateLang :: (Vars v, Eq a) => Grammar v a -> Language a
@@ -57,13 +26,11 @@ genOneStepLang :: (Eq v, Eq a) => [Rule v a] -> [PartialWord v a] -> [PartialWor
 genOneStepLang rules prevWords = let ws = fmap (genOne rules) prevWords
                                  in filter (not . flip elem prevWords) $ nub $ join $  ws
 
-type PartialWord v a = KleeneStar (Either v a)
-type Rule v a = (v, PartialWord v a)
 
 -- if the partial word has no variables inside then return itself
 -- Else return all the possible combinaisons of rules applied to all the variables
 genOne :: (Eq v) => [Rule v a] -> PartialWord v a -> [PartialWord v a]
-genOne rules word | length (lefts word) == 0 = return word
+genOne rules word | length (lefts word) == 0 = []
                   | otherwise = kindaJoinLeft $ fmap (first catMaybes) $ useAllRules $ fillWithRules word rules
 
 useRule :: (Eq v) => v -> Rule v a -> Maybe (KleeneStar (Either v a))
