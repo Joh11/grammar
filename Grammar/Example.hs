@@ -1,4 +1,6 @@
-module Grammar.Example where
+module Grammar.Example( S(..)
+                      , AB(..)
+                      , firstGrammar) where
 
 import Grammar.Grammar
 
