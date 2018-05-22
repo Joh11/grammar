@@ -48,30 +48,23 @@ generateLang grammar = nub $ catMaybes $ fmap onlyFullWords $ genPartialWords gr
 
 genPartialWords :: Grammar v a -> [PartialWord v a] -> [PartialWord v a]
 genPartialWords g@(Grammar rules) ws = ws' ++ genPartialWords g ws'
-  where ws' = ws ++ runReader (genOneStepLang (return ws)) rules
+  where ws' = ws ++ genOneStepLang rules ws
 
 firstPartialWord :: (Vars v) => Grammar v a -> PartialWord v a
 firstPartialWord _ = [Left axiom]
 
-genOneStepLang :: (Eq v, Eq a) => ReaderList [Rule v a] (PartialWord v a) -> ReaderList [Rule v a] (PartialWord v a)
-genOneStepLang m = do
-  ws <- fmap (fmap genOne) m
-  rules <- ask
-  prevWords <- m
-  return $ filter (not . flip elem prevWords) $ nub $ join $ fmap (flip runReader rules) ws
+genOneStepLang :: (Eq v, Eq a) => [Rule v a] -> [PartialWord v a] -> [PartialWord v a]
+genOneStepLang rules prevWords = let ws = fmap (genOne rules) prevWords
+                                 in filter (not . flip elem prevWords) $ nub $ join $  ws
 
-type ReaderList r a = Reader r [a]
 type PartialWord v a = KleeneStar (Either v a)
 type Rule v a = (v, PartialWord v a)
 
 -- if the partial word has no variables inside then return itself
 -- Else return all the possible combinaisons of rules applied to all the variables
-genOne :: (Eq v) => PartialWord v a -> ReaderList [Rule v a] (PartialWord v a)
-genOne word | length (lefts word) == 0 = return $ return word
-            | otherwise = do
-                rules <- ask
---                 return []
-                return $ kindaJoinLeft $ fmap (bimap catMaybes id) $ useAllRules $ fillWithRules word rules
+genOne :: (Eq v) => [Rule v a] -> PartialWord v a -> [PartialWord v a]
+genOne rules word | length (lefts word) == 0 = return word
+                  | otherwise = kindaJoinLeft $ fmap (bimap catMaybes id) $ useAllRules $ fillWithRules word rules
 
 useRule :: (Eq v) => v -> Rule v a -> Maybe (KleeneStar (Either v a))
 useRule x (v, m) | x == v = Just m
